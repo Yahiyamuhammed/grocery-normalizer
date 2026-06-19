@@ -1,18 +1,20 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import matchRoutes from './routes/match.routes.js';
 
-const normalizationRoutes = require('./routes/normalizationRoutes');
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // Allows parsing JSON bodies
 
 // Routes
-app.use('/api', normalizationRoutes);
+app.use('/api/v1/matching', matchRoutes);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Prototype Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
