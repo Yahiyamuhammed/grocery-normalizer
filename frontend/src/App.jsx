@@ -1,6 +1,59 @@
 import { useState, useMemo } from 'react';
-import { UploadCloud, Loader2, Database, FileJson, Layers, CornerDownRight, Zap, TrendingDown, Clock, ShieldCheck } from 'lucide-react';
+import { Loader2, Database, FileJson, Layers, CornerDownRight, Zap, TrendingDown, Clock, ShieldCheck, Play } from 'lucide-react';
 import { uploadCsvForNormalization } from './api/productApi';
+
+const SAMPLE_DATA = [
+  { "original": "Coca Cola Classic 1L", "normalized": "Coca-Cola Classic 1L", "family": "Soda", "confidence": 98, "brand": "Coca-Cola", "size": "1L" },
+  { "original": "Coke Original Taste 1000ml", "normalized": "Coca-Cola Classic 1L", "family": "Soda", "confidence": 95, "brand": "Coca-Cola", "size": "1L" },
+  { "original": "Coca-Cola 1 Liter", "normalized": "Coca-Cola Classic 1L", "family": "Soda", "confidence": 98, "brand": "Coca-Cola", "size": "1L" },
+  { "original": "Coka Cola 1L", "normalized": "Coca-Cola Classic 1L", "family": "Soda", "confidence": 90, "brand": "Coca-Cola", "size": "1L" },
+  { "original": "COKE 1 LITER", "normalized": "Coca-Cola Classic 1L", "family": "Soda", "confidence": 92, "brand": "Coca-Cola", "size": "1L" },
+  { "original": "Gatorade Cool Blue 12oz", "normalized": "Gatorade Cool Blue Sports Drink 12oz", "family": "Sports Drink", "confidence": 98, "brand": "Gatorade", "size": "12oz" },
+  { "original": "Gatorad Blue 12 oz", "normalized": "Gatorade Cool Blue Sports Drink 12oz", "family": "Sports Drink", "confidence": 90, "brand": "Gatorade", "size": "12oz" },
+  { "original": "Gatrade CoolBlue", "normalized": "Gatorade Cool Blue Sports Drink", "family": "Sports Drink", "confidence": 88, "brand": "Gatorade", "size": "" },
+  { "original": "GATORADE COOL BLUE", "normalized": "Gatorade Cool Blue Sports Drink", "family": "Sports Drink", "confidence": 95, "brand": "Gatorade", "size": "" },
+  { "original": "gatorade blue", "normalized": "Gatorade Cool Blue Sports Drink", "family": "Sports Drink", "confidence": 90, "brand": "Gatorade", "size": "" },
+  { "original": "Gatrade 12 oz", "normalized": "Gatorade Sports Drink 12oz", "family": "Sports Drink", "confidence": 85, "brand": "Gatorade", "size": "12oz" },
+  { "original": "GATORADE BLUE", "normalized": "Gatorade Cool Blue Sports Drink", "family": "Sports Drink", "confidence": 90, "brand": "Gatorade", "size": "" },
+  { "original": "Pepsi Cola 12 Pack 12oz", "normalized": "Pepsi Cola 12-Pack 12oz Cans", "family": "Soda", "confidence": 98, "brand": "Pepsi", "size": "12-Pack 12oz Cans" },
+  { "original": "Pepsi 12pk", "normalized": "Pepsi Cola 12-Pack", "family": "Soda", "confidence": 90, "brand": "Pepsi", "size": "12-Pack" },
+  { "original": "PEPSI 12 oz cans", "normalized": "Pepsi Cola 12oz Can", "family": "Soda", "confidence": 80, "brand": "Pepsi", "size": "12oz" },
+  { "original": "pepsi cola value pack", "normalized": "Pepsi Cola Value Pack", "family": "Soda", "confidence": 85, "brand": "Pepsi", "size": "Value Pack" },
+  { "original": "Red Bull Energy Drink 8.4oz", "normalized": "Red Bull Energy Drink 8.4oz", "family": "Energy Drink", "confidence": 98, "brand": "Red Bull", "size": "8.4oz" },
+  { "original": "Redbull 8.4 oz", "normalized": "Red Bull Energy Drink 8.4oz", "family": "Energy Drink", "confidence": 95, "brand": "Red Bull", "size": "8.4oz" },
+  { "original": "RED BULL 8.4oz", "normalized": "Red Bull Energy Drink 8.4oz", "family": "Energy Drink", "confidence": 98, "brand": "Red Bull", "size": "8.4oz" },
+  { "original": "Red Bull energy limited edition", "normalized": "Red Bull Limited Edition Energy Drink", "family": "Energy Drink", "confidence": 90, "brand": "Red Bull", "size": "" },
+  { "original": "Lay's Classic Family Pack 8oz", "normalized": "Lay's Classic Potato Chips Family Pack 8oz", "family": "Chips", "confidence": 98, "brand": "Lay's", "size": "Family Pack 8oz" },
+  { "original": "Lays classic 8 oz", "normalized": "Lay's Classic Potato Chips 8oz", "family": "Chips", "confidence": 95, "brand": "Lay's", "size": "8oz" },
+  { "original": "LAYS CLASSIC", "normalized": "Lay's Classic Potato Chips", "family": "Chips", "confidence": 90, "brand": "Lay's", "size": "" },
+  { "original": "Lay's potato chips 8oz", "normalized": "Lay's Classic Potato Chips 8oz", "family": "Chips", "confidence": 92, "brand": "Lay's", "size": "8oz" },
+  { "original": "Pringles Sour Cream & Onion 5.5oz", "normalized": "Pringles Sour Cream & Onion Potato Crisps 5.5oz", "family": "Chips", "confidence": 98, "brand": "Pringles", "size": "5.5oz" },
+  { "original": "Pringels Sour Cream", "normalized": "Pringles Sour Cream & Onion Potato Crisps", "family": "Chips", "confidence": 88, "brand": "Pringles", "size": "" },
+  { "original": "Pringles 5.5 oz", "normalized": "Pringles Potato Crisps 5.5oz", "family": "Chips", "confidence": 90, "brand": "Pringles", "size": "5.5oz" },
+  { "original": "pringles sourcream and onion", "normalized": "Pringles Sour Cream & Onion Potato Crisps", "family": "Chips", "confidence": 92, "brand": "Pringles", "size": "" },
+  { "original": "Doritos Nacho Cheese 9.25oz", "normalized": "Doritos Nacho Cheese Flavored Tortilla Chips 9.25oz", "family": "Chips", "confidence": 98, "brand": "Doritos", "size": "9.25oz" },
+  { "original": "Dorito Nacho 9.25 oz", "normalized": "Doritos Nacho Cheese Flavored Tortilla Chips 9.25oz", "family": "Chips", "confidence": 90, "brand": "Doritos", "size": "9.25oz" },
+  { "original": "DORITOS NACHO CHEESE", "normalized": "Doritos Nacho Cheese Flavored Tortilla Chips", "family": "Chips", "confidence": 95, "brand": "Doritos", "size": "" },
+  { "original": "Doritos Nacho Family Pack", "normalized": "Doritos Nacho Cheese Flavored Tortilla Chips Family Pack", "family": "Chips", "confidence": 90, "brand": "Doritos", "size": "Family Pack" },
+  { "original": "Oreo Regular 14.3oz", "normalized": "Oreo Original Chocolate Sandwich Cookies 14.3oz", "family": "Cookies", "confidence": 98, "brand": "Oreo", "size": "14.3oz" },
+  { "original": "Oreos 14.3 oz", "normalized": "Oreo Original Chocolate Sandwich Cookies 14.3oz", "family": "Cookies", "confidence": 95, "brand": "Oreo", "size": "14.3oz" },
+  { "original": "OREO cookies original", "normalized": "Oreo Original Chocolate Sandwich Cookies", "family": "Cookies", "confidence": 92, "brand": "Oreo", "size": "" },
+  { "original": "oreo 14.3oz value pack", "normalized": "Oreo Original Chocolate Sandwich Cookies 14.3oz Value Pack", "family": "Cookies", "confidence": 95, "brand": "Oreo", "size": "14.3oz Value Pack" },
+  { "original": "Kellogg's Frosted Flakes 13.5oz", "normalized": "Kellogg's Frosted Flakes Cereal 13.5oz", "family": "Cereal", "confidence": 98, "brand": "Kellogg's", "size": "13.5oz" },
+  { "original": "Kelloggs Frosted Flakes", "normalized": "Kellogg's Frosted Flakes Cereal", "family": "Cereal", "confidence": 95, "brand": "Kellogg's", "size": "" },
+  { "original": "Frosted Flakes 13.5 oz", "normalized": "Kellogg's Frosted Flakes Cereal 13.5oz", "family": "Cereal", "confidence": 90, "brand": "Kellogg's", "size": "13.5oz" },
+  { "original": "kelloggs frosted flakes", "normalized": "Kellogg's Frosted Flakes Cereal", "family": "Cereal", "confidence": 95, "brand": "Kellogg's", "size": "" },
+  { "original": "Tropicana Orange Juice No Pulp 52oz", "normalized": "Tropicana Pure Premium Orange Juice No Pulp 52oz", "family": "Juice", "confidence": 98, "brand": "Tropicana", "size": "52oz" },
+  { "original": "Tropicana OJ 52 oz", "normalized": "Tropicana Pure Premium Orange Juice 52oz", "family": "Juice", "confidence": 95, "brand": "Tropicana", "size": "52oz" },
+  { "original": "Trop Orange Juice 52oz", "normalized": "Tropicana Pure Premium Orange Juice 52oz", "family": "Juice", "confidence": 90, "brand": "Tropicana", "size": "52oz" },
+  { "original": "TROPICANA ORANGE", "normalized": "Tropicana Pure Premium Orange Juice", "family": "Juice", "confidence": 92, "brand": "Tropicana", "size": "" },
+  { "original": "Choc Milk 1 Gallon", "normalized": "Chocolate Milk 1 Gallon", "family": "Milk", "confidence": 95, "brand": "", "size": "1 Gallon" },
+  { "original": "Frozen Pezza Pepperoni", "normalized": "Frozen Pepperoni Pizza", "family": "Frozen Meals", "confidence": 85, "brand": "", "size": "" },
+  { "original": "Sourdough Bred Fresh", "normalized": "Fresh Sourdough Bread", "family": "Bakery", "confidence": 90, "brand": "", "size": "" },
+  { "original": "Bannanas bundle organic", "normalized": "Organic Banana Bundle", "family": "Produce", "confidence": 90, "brand": "", "size": "Bundle" },
+  { "original": "Papertowels 6 rolls", "normalized": "Paper Towels 6 Rolls", "family": "Paper Products", "confidence": 95, "brand": "", "size": "6 Rolls" },
+  { "original": "Tothpaste mint 4oz", "normalized": "Mint Toothpaste 4oz", "family": "Oral Care", "confidence": 90, "brand": "", "size": "4oz" }
+];
 
 function App() {
   const [file, setFile] = useState(null);
@@ -25,6 +78,15 @@ function App() {
     }
   };
 
+  const loadSampleData = () => {
+    setLoading(true);
+    // Simulate a brief loading state to make the demo feel natural
+    setTimeout(() => {
+      setData(SAMPLE_DATA);
+      setLoading(false);
+    }, 600);
+  };
+
   const groupedData = useMemo(() => {
     if (!data) return {};
     return data.reduce((acc, item) => {
@@ -37,15 +99,10 @@ function App() {
   // --- BUSINESS IMPACT METRICS ---
   const businessImpact = useMemo(() => {
     if (!data) return null;
-    
     const totalSkus = data.length;
     const uniqueProducts = Object.keys(groupedData).length;
     const duplicatesRemoved = totalSkus - uniqueProducts;
-    
-    // Avoid division by zero edge case
     const reductionPercent = totalSkus > 0 ? Math.round((duplicatesRemoved / totalSkus) * 100) : 0;
-    
-    // Assuming a human analyst takes ~30 seconds to manually review, standardize, and map 1 messy SKU
     const SECONDS_PER_SKU_MANUAL = 30;
     const hoursSaved = ((totalSkus * SECONDS_PER_SKU_MANUAL) / 3600).toFixed(1);
 
@@ -69,8 +126,8 @@ function App() {
               <Database className="w-6 h-6 text-emerald-400" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Athena Engine</h1>
-              <p className="text-slate-500 text-sm mt-0.5">Automated SKU Resolution Prototype</p>
+              <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">Catalog Intelligence Agent</h1>
+              <p className="text-slate-500 text-sm mt-0.5">Automated SKU Resolution • Inspired by BetterBasket</p>
             </div>
           </div>
           {data && (
@@ -83,10 +140,23 @@ function App() {
           )}
         </header>
 
-        {/* UPLOAD SECTION */}
+        {/* UPLOAD & DEMO SECTION */}
         {!data && (
-          <div className="bg-white p-12 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-200/60 flex flex-col items-center justify-center space-y-8">
-            <div className="w-full max-w-md border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center text-center hover:bg-slate-50 hover:border-emerald-400 transition-all group relative">
+          <div className="bg-white p-8 md:p-12 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] border border-slate-200/60 flex flex-col items-center justify-center">
+            
+            {/* HOW IT WORKS */}
+            <div className="mb-8 w-full max-w-md bg-slate-50/80 border border-slate-200 rounded-xl p-6">
+              <h3 className="font-semibold text-sm text-zinc-900 mb-4 uppercase tracking-wide">How it works</h3>
+              <ol className="text-sm text-slate-600 space-y-3 list-decimal list-inside font-medium">
+                <li>Upload messy grocery catalog</li>
+                <li>AI normalizes product names</li>
+                <li>Similar products are grouped into families</li>
+                <li>Business impact metrics are generated</li>
+              </ol>
+            </div>
+
+            {/* UPLOAD DROPZONE */}
+            <div className="w-full max-w-md border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center text-center hover:bg-slate-50 hover:border-emerald-400 transition-all group relative mb-8">
               <input 
                 type="file" 
                 accept=".csv" 
@@ -104,20 +174,38 @@ function App() {
               </p>
             </div>
 
-            <button 
-              onClick={handleUpload}
-              disabled={!file || loading}
-              className="bg-zinc-900 text-white px-8 py-3 rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm transition-all active:scale-95"
-            >
-              {loading ? (
-                <>
+            {/* ACTION BUTTONS */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+              <button 
+                onClick={loadSampleData}
+                disabled={loading}
+                className="flex-1 bg-white text-zinc-900 border border-slate-200 px-6 py-3 rounded-lg text-sm font-medium hover:bg-slate-50 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
+              >
+                {loading && !file ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />
+                ) : (
+                  <Play className="w-4 h-4 text-emerald-500" fill="currentColor" />
+                )}
+                Try Sample Catalog
+              </button>
+
+              <button 
+                onClick={handleUpload}
+                disabled={!file || loading}
+                className="flex-1 bg-zinc-900 text-white px-6 py-3 rounded-lg text-sm font-medium hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
+              >
+                {loading && file ? (
                   <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />
-                  Processing Graph...
-                </>
-              ) : (
-                'Run Resolution Engine'
-              )}
-            </button>
+                ) : (
+                  'Run Resolution'
+                )}
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-400 mt-6 text-center max-w-md leading-relaxed">
+              <strong>Sample Catalog</strong> uses pre-computed normalization results for faster demonstration. <br/>
+              <strong>Custom uploads</strong> are processed live using Gemini.
+            </p>
           </div>
         )}
 
@@ -133,7 +221,6 @@ function App() {
               </div>
               
               <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                
                 <div className="p-6 flex flex-col gap-1 bg-slate-50/30">
                   <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Total SKUs Processed</span>
                   <strong className="text-3xl font-bold text-zinc-900">{businessImpact.totalSkus}</strong>
@@ -162,7 +249,6 @@ function App() {
                   <strong className="text-3xl font-bold text-blue-600">{businessImpact.hoursSaved}h</strong>
                   <span className="text-xs text-slate-500 mt-1">Assuming 30s per SKU</span>
                 </div>
-
               </div>
             </div>
 
