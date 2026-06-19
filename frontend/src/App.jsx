@@ -5,7 +5,6 @@ function App() {
   const [data, setData] = useState(null);
 
   const handleTestCall = async () => {
-    console.log('calling');
     
     const rawProducts = ["Gatorade Cool Blue 12oz", "Gatrade Blue 12 oz"];
     try {

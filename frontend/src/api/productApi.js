@@ -1,7 +1,6 @@
 const API_BASE_URL = 'http://localhost:5001/api/v1';
 
 export const normalizeProductCatalog = async (productNames) => {
-    console.log('calling api');
     
   const response = await fetch(`${API_BASE_URL}/matching/normalize`, {
     method: 'POST',
