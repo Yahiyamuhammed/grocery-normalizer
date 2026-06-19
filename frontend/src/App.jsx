@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { UploadCloud, Loader2, Database, FileJson, Layers, CornerDownRight } from 'lucide-react';
+import { UploadCloud, Loader2, Database, FileJson, Layers, CornerDownRight, Zap, TrendingDown, Clock, ShieldCheck } from 'lucide-react';
 import { uploadCsvForNormalization } from './api/productApi';
 
 function App() {
@@ -33,6 +33,24 @@ function App() {
       return acc;
     }, {});
   }, [data]);
+
+  // --- BUSINESS IMPACT METRICS ---
+  const businessImpact = useMemo(() => {
+    if (!data) return null;
+    
+    const totalSkus = data.length;
+    const uniqueProducts = Object.keys(groupedData).length;
+    const duplicatesRemoved = totalSkus - uniqueProducts;
+    
+    // Avoid division by zero edge case
+    const reductionPercent = totalSkus > 0 ? Math.round((duplicatesRemoved / totalSkus) * 100) : 0;
+    
+    // Assuming a human analyst takes ~30 seconds to manually review, standardize, and map 1 messy SKU
+    const SECONDS_PER_SKU_MANUAL = 30;
+    const hoursSaved = ((totalSkus * SECONDS_PER_SKU_MANUAL) / 3600).toFixed(1);
+
+    return { totalSkus, uniqueProducts, duplicatesRemoved, reductionPercent, hoursSaved };
+  }, [data, groupedData]);
 
   const getConfidenceColor = (score) => {
     if (score >= 95) return 'text-emerald-700 bg-emerald-50 border-emerald-200/60';
@@ -105,18 +123,46 @@ function App() {
 
         {/* RESULTS DASHBOARD */}
         {data && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            {/* METRICS */}
-            <div className="flex gap-8 bg-white p-4 px-6 rounded-xl shadow-sm border border-slate-200/60 w-fit">
-              <div className="flex flex-col">
-                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">Total SKUs</span>
-                <strong className="text-xl font-semibold text-zinc-900">{data.length}</strong>
+            {/* BUSINESS IMPACT SECTION */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+              <div className="bg-zinc-900 px-6 py-4 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-emerald-400" />
+                <h2 className="text-white font-medium">Business Impact Summary</h2>
               </div>
-              <div className="w-px bg-slate-200"></div>
-              <div className="flex flex-col">
-                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">Unified Families</span>
-                <strong className="text-xl font-semibold text-zinc-900">{Object.keys(groupedData).length}</strong>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                
+                <div className="p-6 flex flex-col gap-1 bg-slate-50/30">
+                  <span className="text-slate-500 text-xs font-semibold uppercase tracking-wider">Total SKUs Processed</span>
+                  <strong className="text-3xl font-bold text-zinc-900">{businessImpact.totalSkus}</strong>
+                </div>
+
+                <div className="p-6 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Unique Core Products
+                  </div>
+                  <strong className="text-3xl font-bold text-zinc-900">{businessImpact.uniqueProducts}</strong>
+                  <span className="text-xs text-slate-500 mt-1">({businessImpact.duplicatesRemoved} duplicates removed)</span>
+                </div>
+
+                <div className="p-6 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <TrendingDown className="w-3.5 h-3.5 text-emerald-500" /> Catalog Reduction
+                  </div>
+                  <strong className="text-3xl font-bold text-emerald-600">{businessImpact.reductionPercent}%</strong>
+                  <span className="text-xs text-slate-500 mt-1">Cleaner database</span>
+                </div>
+
+                <div className="p-6 flex flex-col gap-1 bg-slate-50/30">
+                  <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                    <Clock className="w-3.5 h-3.5 text-blue-500" /> Manual Hours Saved
+                  </div>
+                  <strong className="text-3xl font-bold text-blue-600">{businessImpact.hoursSaved}h</strong>
+                  <span className="text-xs text-slate-500 mt-1">Assuming 30s per SKU</span>
+                </div>
+
               </div>
             </div>
 
@@ -130,7 +176,7 @@ function App() {
                     <Layers className="w-4 h-4 text-slate-400" />
                     <h3 className="text-sm font-semibold text-slate-800">{family}</h3>
                     <span className="ml-auto text-xs font-medium text-slate-500 bg-slate-200/50 px-2.5 py-0.5 rounded-full">
-                      {items.length} items
+                      {items.length} variants unified
                     </span>
                   </div>
 
@@ -141,29 +187,25 @@ function App() {
                         
                         {/* Data Transformation View */}
                         <div className="flex flex-col gap-2">
-                          
-                          {/* 1. The Clean, Normalized Result */}
                           <span className="font-semibold text-zinc-900 text-base">
                             {item.normalized}
                           </span>
                           
-                          {/* 2. The Raw Input Origin */}
                           <div className="flex items-center gap-1.5 text-slate-500 text-sm">
                             <CornerDownRight className="w-3.5 h-3.5 text-slate-400" />
-                            <span className="font-medium text-slate-400 text-xs uppercase tracking-wide">Raw:</span>
-                            <span>{item.original}</span>
+                            <span className="font-medium text-slate-400 text-[10px] font-bold uppercase tracking-wide bg-slate-100 px-1.5 py-0.5 rounded">Raw Input:</span>
+                            <span className="font-mono text-xs">{item.original}</span>
                           </div>
                           
-                          {/* 3. Extracted Metadata Tags */}
                           {(item.brand || item.size) && (
                             <div className="flex items-center gap-2 mt-1">
                               {item.brand && (
-                                <span className="text-xs font-medium bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
+                                <span className="text-xs font-medium bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md shadow-sm">
                                   Brand: <strong className="text-zinc-700">{item.brand}</strong>
                                 </span>
                               )}
                               {item.size && (
-                                <span className="text-xs font-medium bg-slate-100 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md">
+                                <span className="text-xs font-medium bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md shadow-sm">
                                   Size: <strong className="text-zinc-700">{item.size}</strong>
                                 </span>
                               )}
