@@ -1,5 +1,7 @@
 export const normalizeProducts = async (req, res) => {
   try {
+    console.log('inside');
+    
     const { products } = req.body;
 
     if (!products || !Array.isArray(products)) {
