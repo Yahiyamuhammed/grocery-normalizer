@@ -1,15 +1,16 @@
 const API_BASE_URL = 'http://localhost:5001/api/v1';
 
-export const normalizeProductCatalog = async (productNames) => {
-    
-  const response = await fetch(`${API_BASE_URL}/matching/normalize`, {
+export const uploadCsvForNormalization = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${API_BASE_URL}/matching/upload`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ products: productNames }),
+    body: formData,
   });
 
   if (!response.ok) {
-    throw new Error('Failed to normalize products');
+    throw new Error('Failed to process file');
   }
 
   const result = await response.json();
